@@ -1,90 +1,119 @@
 import { GAME_CONFIG } from "../config/gameConfig";
-import { getSpriteStage } from "../store/gameStore";
 
 interface DaphneSpriteProps {
-  unlockedCount: number;
+  unlockedIds: string[];
   heat: number;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
-export function DaphneSprite({ unlockedCount, heat, onClick }: DaphneSpriteProps) {
-  const stage = getSpriteStage(unlockedCount);
-  const isHot = heat >= GAME_CONFIG.HEAT_PENALTY_THRESHOLD;
+// Checks if a specific line has been unlocked
+function has(ids: string[], id: string) {
+  return ids.includes(id);
+}
+// Counts how many of an array of ids are unlocked
+function countOf(ids: string[], set: string[]) {
+  return set.filter((id) => ids.includes(id)).length;
+}
 
-  const stageData = GAME_CONFIG.SPRITE_STAGES[stage];
-  const progress = unlockedCount / 15;
+const PART1_IDS = ["line_543","line_544","line_545","line_546","line_548","line_549","line_550","line_551","line_552"];
+const PART2_IDS = ["line_553","line_554","line_555","line_556","line_557","line_558","line_559","line_560","line_561"];
+
+export function DaphneSprite({ unlockedIds, heat, onClick }: DaphneSpriteProps) {
+  const safeIds = unlockedIds ?? [];
+  const isHot = heat >= GAME_CONFIG.HEAT_PENALTY_THRESHOLD;
+  const isDanger = heat >= 90;
+
+  const p1 = countOf(safeIds, PART1_IDS); // 0-9
+  const p2 = countOf(safeIds, PART2_IDS); // 0-9
+  const total = safeIds.length;
+
+  // Skin tone transitions from warm flesh → bark brown → deep green-brown
+  const skinColor = p1 < 2 ? "#c2956f" : p1 < 5 ? "#9b7455" : "#6b4c35";
+  const barkColor = p1 < 4 ? "#7a4535" : p1 < 7 ? "#5c3a22" : "#3d2010";
+  const leafColor = p2 >= 5 ? "#4a9a35" : "#3a7a2a";
+  const leafOpacity = 0.7 + p2 * 0.03;
+
+  // Hair / crown colour
+  const hairColor = p1 >= 6 ? "#2d5a1b" : "#1a0f08";
+
+  const description = getDescription(p1, p2);
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-3 select-none">
       <button
         onClick={onClick}
-        className="relative group select-none focus:outline-none"
+        className="relative group focus:outline-none cursor-pointer"
         aria-label="Click to generate Numen"
       >
         <div
-          className={`
-            relative w-48 h-64 md:w-56 md:h-72 transition-all duration-700
-            ${isHot ? "animate-pulse" : ""}
-          `}
+          className={`relative w-44 h-72 md:w-52 md:h-80 transition-all duration-700 ${
+            isDanger ? "animate-pulse" : ""
+          }`}
         >
           <svg
-            viewBox="0 0 200 280"
-            className="w-full h-full drop-shadow-lg group-hover:scale-105 group-active:scale-95 transition-transform duration-150"
+            viewBox="0 0 200 310"
+            className="w-full h-full drop-shadow-2xl group-hover:scale-105 group-active:scale-95 transition-transform duration-150"
           >
             <defs>
               <radialGradient id="glow-hot" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#ef4444" stopOpacity="0.4" />
+                <stop offset="0%" stopColor="#ef4444" stopOpacity="0.5" />
                 <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
               </radialGradient>
               <radialGradient id="glow-gold" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#d4af37" stopOpacity="0.3" />
+                <stop offset="0%" stopColor="#d4af37" stopOpacity="0.5" />
                 <stop offset="100%" stopColor="#d4af37" stopOpacity="0" />
               </radialGradient>
-              <filter id="bark-texture">
-                <feTurbulence
-                  type="fractalNoise"
-                  baseFrequency="0.65"
-                  numOctaves="3"
-                  stitchTiles="stitch"
-                />
-                <feColorMatrix type="saturate" values="0" />
-                <feBlend in="SourceGraphic" mode="multiply" />
+              <radialGradient id="glow-green" cx="50%" cy="30%" r="60%">
+                <stop offset="0%" stopColor="#4a9a35" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#4a9a35" stopOpacity="0" />
+              </radialGradient>
+              <filter id="glow-filter" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
               </filter>
             </defs>
 
-            {isHot && (
-              <ellipse cx="100" cy="140" rx="90" ry="130" fill="url(#glow-hot)" />
-            )}
+            {/* Background glows */}
+            {isHot && <ellipse cx="100" cy="155" rx="90" ry="140" fill="url(#glow-hot)" />}
+            {p1 >= 8 && !isHot && <ellipse cx="100" cy="100" rx="85" ry="120" fill="url(#glow-green)" />}
+            {p2 >= 7 && !isHot && <ellipse cx="100" cy="80" rx="90" ry="130" fill="url(#glow-gold)" />}
 
-            {stage >= 4 && (
-              <ellipse cx="100" cy="140" rx="90" ry="130" fill="url(#glow-gold)" />
-            )}
+            {/* ── ROOTS (appear from line_546 onward) ── */}
+            {p1 >= 4 && <Roots p1={p1} barkColor={barkColor} />}
 
-            {stage === 0 && <WomanStage />}
-            {stage === 1 && <RootsStage />}
-            {stage === 2 && <BarkStage />}
-            {stage === 3 && <BranchesStage />}
-            {stage >= 4 && <LaurelStage />}
+            {/* ── LOWER BODY / TRUNK ── */}
+            <LowerBody p1={p1} p2={p2} skinColor={skinColor} barkColor={barkColor} />
 
-            <ellipse
-              cx="100"
-              cy="268"
-              rx="40"
-              ry="8"
-              fill="#2d1810"
-              opacity="0.3"
-            />
+            {/* ── TORSO ── */}
+            <Torso p1={p1} p2={p2} skinColor={skinColor} barkColor={barkColor} />
+
+            {/* ── ARMS ── */}
+            <Arms p1={p1} p2={p2} skinColor={skinColor} barkColor={barkColor} leafColor={leafColor} />
+
+            {/* ── HEAD / CROWN ── */}
+            <HeadAndCrown p1={p1} p2={p2} skinColor={skinColor} hairColor={hairColor} leafColor={leafColor} leafOpacity={leafOpacity} />
+
+            {/* ── BARK TEXTURE LINES (appear as bark forms) ── */}
+            {p1 >= 5 && <BarkTexture p1={p1} />}
+
+            {/* ── GOLDEN LAUREL ADORNMENTS (Part 2) ── */}
+            {p2 >= 6 && <GoldenAdornments p2={p2} />}
+
+            {/* Shadow */}
+            <ellipse cx="100" cy="302" rx="38" ry="6" fill="#1a0f08" opacity="0.35" />
           </svg>
 
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 group-active:opacity-0 transition-opacity pointer-events-none">
-            {[...Array(3)].map((_, i) => (
+          {/* Hover sparkle dots */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="absolute top-1/2 left-1/2 w-2 h-2 rounded-full bg-amber-400 animate-ping"
+                className="absolute w-2 h-2 rounded-full bg-amber-400 animate-ping"
                 style={{
-                  transform: `translate(${(i - 1) * 30}px, -20px)`,
-                  animationDelay: `${i * 0.15}s`,
-                  animationDuration: "0.8s",
+                  top: `${30 + i * 12}%`,
+                  left: `${20 + (i % 2) * 60}%`,
+                  animationDelay: `${i * 0.2}s`,
+                  animationDuration: "0.9s",
                 }}
               />
             ))}
@@ -92,159 +121,273 @@ export function DaphneSprite({ unlockedCount, heat, onClick }: DaphneSpriteProps
         </div>
       </button>
 
-      <div className="text-center">
-        <p className="font-serif text-amber-200 text-sm italic opacity-75">
-          {stageData.description}
-        </p>
-        <div className="mt-2 w-48 bg-stone-800 rounded-full h-1.5">
+      <div className="text-center max-w-[200px]">
+        <p className="font-serif text-amber-200 text-xs italic opacity-80 leading-snug">{description}</p>
+        <div className="mt-2 w-40 mx-auto bg-stone-800 rounded-full h-1.5">
           <div
-            className="bg-amber-600 h-1.5 rounded-full transition-all duration-500"
-            style={{ width: `${Math.min(progress * 100, 100)}%` }}
+            className="bg-gradient-to-r from-amber-700 to-green-600 h-1.5 rounded-full transition-all duration-700"
+            style={{ width: `${Math.min((total / 18) * 100, 100)}%` }}
           />
         </div>
-        <p className="text-stone-500 text-xs mt-1">{unlockedCount}/15 transformations</p>
+        <p className="text-stone-600 text-xs mt-1">{total}/18 lines unlocked</p>
       </div>
     </div>
   );
 }
 
-function WomanStage() {
+// ── SVG SUB-COMPONENTS ────────────────────────────────────────
+
+function Roots({ p1, barkColor }: { p1: number; barkColor: string }) {
+  const depth = Math.min((p1 - 4) * 12, 55);
   return (
-    <g>
-      <ellipse cx="100" cy="55" rx="22" ry="26" fill="#c2956f" opacity="0.9" />
-      <path
-        d="M100 30 Q85 20 82 15 Q100 8 118 15 Q115 20 100 30"
-        fill="#1a0f08"
-      />
-      <path
-        d="M78 81 Q68 130 65 160 Q72 168 80 165 Q85 140 90 120 Q100 145 100 165 Q100 145 110 120 Q115 140 120 165 Q128 168 135 160 Q132 130 122 81 Z"
-        fill="#6b3a2a"
-        opacity="0.85"
-      />
-      <path
-        d="M78 81 Q100 95 122 81 L118 75 Q100 85 82 75 Z"
-        fill="#7a4535"
-      />
-      <line x1="78" y1="85" x2="55" y2="125" stroke="#c2956f" strokeWidth="10" strokeLinecap="round" />
-      <line x1="122" y1="85" x2="145" y2="125" stroke="#c2956f" strokeWidth="10" strokeLinecap="round" />
-      <line x1="90" y1="165" x2="88" y2="220" stroke="#c2956f" strokeWidth="12" strokeLinecap="round" />
-      <line x1="110" y1="165" x2="112" y2="220" stroke="#c2956f" strokeWidth="12" strokeLinecap="round" />
-      <path
-        d="M82 30 Q75 60 72 90 Q100 100 128 90 Q125 60 118 30"
-        fill="#c2956f"
-        opacity="0.7"
-      />
+    <g opacity="0.9">
+      <path d={`M92 285 Q86 ${285+depth*0.6} 74 ${285+depth} Q79 ${287+depth} 86 ${278+depth*0.5}`} fill={barkColor} />
+      <path d={`M108 285 Q114 ${285+depth*0.6} 126 ${285+depth} Q121 ${287+depth} 114 ${278+depth*0.5}`} fill={barkColor} />
+      <path d={`M100 288 Q100 ${300+depth*0.7} 100 ${300+depth} Q103 ${300+depth} 103 ${295+depth*0.5}`} fill={barkColor} />
+      {p1 >= 6 && (
+        <>
+          <path d={`M88 280 Q76 ${285+depth*0.8} 62 ${290+depth} Q67 ${293+depth} 76 ${285+depth*0.6}`} fill={barkColor} />
+          <path d={`M112 280 Q124 ${285+depth*0.8} 138 ${290+depth} Q133 ${293+depth} 124 ${285+depth*0.6}`} fill={barkColor} />
+        </>
+      )}
+      {p1 >= 8 && (
+        <>
+          <path d={`M84 278 Q68 ${288+depth} 52 ${298+depth} Q58 ${302+depth} 70 ${292+depth*0.7}`} fill={barkColor} opacity="0.8"/>
+          <path d={`M116 278 Q132 ${288+depth} 148 ${298+depth} Q142 ${302+depth} 130 ${292+depth*0.7}`} fill={barkColor} opacity="0.8"/>
+        </>
+      )}
     </g>
   );
 }
 
-function RootsStage() {
+function LowerBody({ p1, p2, skinColor, barkColor }: { p1: number; p2: number; skinColor: string; barkColor: string }) {
+  // p1<4: bare legs; p1>=4: bark starts; p1>=7: full trunk
+  if (p1 < 4) {
+    return (
+      <g>
+        <line x1="90" y1="185" x2="88" y2="250" stroke={skinColor} strokeWidth="14" strokeLinecap="round" />
+        <line x1="110" y1="185" x2="112" y2="250" stroke={skinColor} strokeWidth="14" strokeLinecap="round" />
+      </g>
+    );
+  }
+  if (p1 < 7) {
+    const barkW = 14 + (p1 - 4) * 3;
+    return (
+      <g>
+        <path
+          d={`M${92 - (p1-4)*2} 185 Q${88 - (p1-4)*2} 220 ${86 - (p1-4)*2} 255 L${114+(p1-4)*2} 255 Q${112+(p1-4)*2} 220 ${108+(p1-4)*2} 185 Z`}
+          fill={barkColor}
+        />
+        {/* Bark seam line */}
+        <line x1="100" y1="185" x2="100" y2="255" stroke={skinColor} strokeWidth="1" opacity="0.3" />
+      </g>
+    );
+  }
+  // Full trunk
+  const trunkW = p2 >= 3 ? 32 : 26;
   return (
     <g>
-      <ellipse cx="100" cy="55" rx="22" ry="26" fill="#8b6e52" opacity="0.9" />
       <path
-        d="M100 30 Q85 20 82 15 Q100 8 118 15 Q115 20 100 30"
-        fill="#1a0f08"
+        d={`M${100 - trunkW/2} 180 Q${96 - trunkW/2} 225 ${94 - trunkW/2} 285 L${106 + trunkW/2} 285 Q${104 + trunkW/2} 225 ${100 + trunkW/2} 180 Z`}
+        fill={barkColor}
       />
-      <path
-        d="M78 81 Q68 130 65 160 Q72 168 80 165 Q85 140 90 120 Q100 145 100 165 Q100 145 110 120 Q115 140 120 165 Q128 168 135 160 Q132 130 122 81 Z"
-        fill="#5c3a22"
-        opacity="0.9"
-      />
-      <line x1="78" y1="85" x2="55" y2="125" stroke="#8b6e52" strokeWidth="10" strokeLinecap="round" />
-      <line x1="122" y1="85" x2="145" y2="125" stroke="#8b6e52" strokeWidth="10" strokeLinecap="round" />
-      <path d="M90 220 Q85 240 75 260 Q80 262 85 255 Q88 240 90 230" fill="#3d2010" />
-      <path d="M110 220 Q115 240 125 260 Q120 262 115 255 Q112 240 110 230" fill="#3d2010" />
-      <path d="M100 230 Q100 250 100 268 Q103 268 103 250 Q103 230 100 230" fill="#3d2010" />
-      <path d="M92 235 Q80 248 72 265 Q76 266 82 252 Q88 240 92 235" fill="#3d2010" />
-      <path d="M108 235 Q120 248 128 265 Q124 266 118 252 Q112 240 108 235" fill="#3d2010" />
+      <line x1={100 - trunkW/4} y1="185" x2={100 - trunkW/4} y2="280" stroke={skinColor} strokeWidth="1" opacity="0.2" />
+      <line x1={100 + trunkW/4} y1="185" x2={100 + trunkW/4} y2="280" stroke={skinColor} strokeWidth="1" opacity="0.2" />
     </g>
   );
 }
 
-function BarkStage() {
+function Torso({ p1, p2, skinColor, barkColor }: { p1: number; p2: number; skinColor: string; barkColor: string }) {
+  const hasBark = p1 >= 5;
+  const torsoColor = hasBark ? barkColor : skinColor;
+  const torsoW = hasBark ? 28 + (p1 - 5) * 3 : 22;
+
   return (
     <g>
-      <ellipse cx="100" cy="55" rx="22" ry="26" fill="#6b4c35" opacity="0.95" />
       <path
-        d="M100 30 Q85 20 82 15 Q100 8 118 15 Q115 20 100 30"
-        fill="#1a0f08"
+        d={`M${100 - torsoW} 100 Q${96 - torsoW} 145 ${94 - torsoW/1.2} 185 L${106 + torsoW/1.2} 185 Q${104 + torsoW} 145 ${100 + torsoW} 100 Z`}
+        fill={torsoColor}
+        opacity={hasBark ? 0.95 : 0.85}
       />
-      <path
-        d="M78 81 Q65 130 62 165 Q72 175 82 170 Q86 145 90 120 Q100 148 100 170 Q100 148 110 120 Q114 145 118 170 Q128 175 138 165 Q135 130 122 81 Z"
-        fill="#4a2e18"
-      />
-      <path d="M70 100 Q80 95 85 105" stroke="#3d2010" strokeWidth="1.5" fill="none" />
-      <path d="M115 110 Q125 105 130 115" stroke="#3d2010" strokeWidth="1.5" fill="none" />
-      <path d="M68 130 Q78 125 83 135" stroke="#3d2010" strokeWidth="1.5" fill="none" />
-      <path d="M118 140 Q128 135 133 145" stroke="#3d2010" strokeWidth="1.5" fill="none" />
-      <line x1="78" y1="85" x2="52" y2="128" stroke="#4a2e18" strokeWidth="12" strokeLinecap="round" />
-      <line x1="122" y1="85" x2="148" y2="128" stroke="#4a2e18" strokeWidth="12" strokeLinecap="round" />
-      <path d="M88 220 Q82 242 72 262 Q78 264 84 255 Q88 242 90 230" fill="#3d2010" />
-      <path d="M112 220 Q118 242 128 262 Q122 264 116 255 Q112 242 110 230" fill="#3d2010" />
-      <path d="M100 225 Q100 248 100 268 Q104 268 104 248 Q104 225 100 225" fill="#3d2010" />
-      <path d="M94 230 Q82 246 74 265 Q79 266 85 252 Q90 240 94 230" fill="#3d2010" />
-      <path d="M106 230 Q118 246 126 265 Q121 266 115 252 Q110 240 106 230" fill="#3d2010" />
+      {/* Dress / robe visible until bark takes over */}
+      {!hasBark && (
+        <path
+          d={`M${78} 100 Q${75} 145 ${72} 185 L${128} 185 Q${125} 145 ${122} 100 Z`}
+          fill="#6b3a2a"
+          opacity="0.7"
+        />
+      )}
     </g>
   );
 }
 
-function BranchesStage() {
+function Arms({ p1, p2, skinColor, barkColor, leafColor }: { p1: number; p2: number; skinColor: string; barkColor: string; leafColor: string }) {
+  const hasBranches = p1 >= 6;
+  const color = hasBranches ? barkColor : skinColor;
+
+  if (!hasBranches) {
+    // p1 < 6: raised arms (prayer pose after line_545)
+    const raised = p1 >= 3;
+    return (
+      <g>
+        <line x1="78" y1="105" x2={raised ? 48 : 52} y2={raised ? 72 : 130} stroke={color} strokeWidth="12" strokeLinecap="round" />
+        <line x1="122" y1="105" x2={raised ? 152 : 148} y2={raised ? 72 : 130} stroke={color} strokeWidth="12" strokeLinecap="round" />
+      </g>
+    );
+  }
+
+  // Branches
+  const branchThick = 12 + (p1 - 6) * 2 + p2 * 1;
   return (
     <g>
-      <ellipse cx="100" cy="50" rx="20" ry="24" fill="#4a3320" opacity="0.95" />
-      <line x1="100" y1="26" x2="100" y2="5" stroke="#2d5a1b" strokeWidth="6" />
-      <line x1="100" y1="10" x2="80" y2="-5" stroke="#2d5a1b" strokeWidth="4" />
-      <line x1="100" y1="10" x2="120" y2="-5" stroke="#2d5a1b" strokeWidth="4" />
-      <ellipse cx="100" cy="0" rx="18" ry="12" fill="#3a7a2a" opacity="0.85" />
-      <ellipse cx="80" cy="-5" rx="14" ry="9" fill="#3a7a2a" opacity="0.75" />
-      <ellipse cx="120" cy="-5" rx="14" ry="9" fill="#3a7a2a" opacity="0.75" />
-      <path
-        d="M78 74 Q65 125 62 162 Q72 172 82 167 Q86 142 90 118 Q100 145 100 167 Q100 145 110 118 Q114 142 118 167 Q128 172 138 162 Q135 125 122 74 Z"
-        fill="#3d2010"
-      />
-      <path d="M50 120 Q42 115 38 125 Q45 130 50 120" fill="#2d5a1b" />
-      <path d="M38 120 Q32 112 28 120 Q34 126 38 120" fill="#3a7a2a" />
-      <path d="M150 120 Q158 115 162 125 Q155 130 150 120" fill="#2d5a1b" />
-      <path d="M162 120 Q168 112 172 120 Q166 126 162 120" fill="#3a7a2a" />
-      <path d="M88 215 Q82 238 72 258 Q78 260 84 252 Q88 238 90 225" fill="#3d2010" />
-      <path d="M112 215 Q118 238 128 258 Q122 260 116 252 Q112 238 110 225" fill="#3d2010" />
-      <path d="M100 220 Q100 245 100 265 Q104 265 104 245 Q104 220 100 220" fill="#3d2010" />
-      <path d="M94 228 Q82 243 74 262 Q79 263 85 250 Q90 238 94 228" fill="#3d2010" />
-      <path d="M106 228 Q118 243 126 262 Q121 263 115 250 Q110 238 106 228" fill="#3d2010" />
+      {/* Main branches */}
+      <line x1="80" y1="110" x2={45 - p2 * 3} y2={75 - p2 * 4} stroke={barkColor} strokeWidth={branchThick} strokeLinecap="round" />
+      <line x1="120" y1="110" x2={155 + p2 * 3} y2={75 - p2 * 4} stroke={barkColor} strokeWidth={branchThick} strokeLinecap="round" />
+
+      {/* Sub-branches appear in Part 2 */}
+      {p2 >= 1 && (
+        <>
+          <line x1="58" y1="88" x2="40" y2="62" stroke={barkColor} strokeWidth={branchThick * 0.6} strokeLinecap="round" />
+          <line x1="142" y1="88" x2="160" y2="62" stroke={barkColor} strokeWidth={branchThick * 0.6} strokeLinecap="round" />
+        </>
+      )}
+      {p2 >= 2 && (
+        <>
+          <line x1="50" y1="76" x2="30" y2="55" stroke={barkColor} strokeWidth={branchThick * 0.4} strokeLinecap="round" />
+          <line x1="150" y1="76" x2="170" y2="55" stroke={barkColor} strokeWidth={branchThick * 0.4} strokeLinecap="round" />
+          <line x1="55" y1="70" x2="40" y2="45" stroke={barkColor} strokeWidth={branchThick * 0.3} strokeLinecap="round" />
+          <line x1="145" y1="70" x2="160" y2="45" stroke={barkColor} strokeWidth={branchThick * 0.3} strokeLinecap="round" />
+        </>
+      )}
+
+      {/* Leaf clusters on branch tips */}
+      {p1 >= 7 && <LeafCluster cx={42} cy={68} leafColor={leafColor} size={12 + p2 * 4} />}
+      {p1 >= 7 && <LeafCluster cx={158} cy={68} leafColor={leafColor} size={12 + p2 * 4} />}
+      {p2 >= 1 && <LeafCluster cx={32} cy={52} leafColor={leafColor} size={10 + p2 * 3} />}
+      {p2 >= 1 && <LeafCluster cx={168} cy={52} leafColor={leafColor} size={10 + p2 * 3} />}
+      {p2 >= 3 && <LeafCluster cx={22} cy={44} leafColor={leafColor} size={8 + p2 * 3} />}
+      {p2 >= 3 && <LeafCluster cx={178} cy={44} leafColor={leafColor} size={8 + p2 * 3} />}
     </g>
   );
 }
 
-function LaurelStage() {
+function HeadAndCrown({ p1, p2, skinColor, hairColor, leafColor, leafOpacity }: {
+  p1: number; p2: number; skinColor: string; hairColor: string; leafColor: string; leafOpacity: number;
+}) {
+  const faceColor = p1 >= 8 ? "#8b6e52" : skinColor;
+
   return (
     <g>
-      <ellipse cx="100" cy="120" rx="75" ry="100" fill="#2d5a1b" opacity="0.35" />
-      <line x1="100" y1="220" x2="100" y2="30" stroke="#3d2010" strokeWidth="16" strokeLinecap="round" />
-      <path d="M100 120 Q75 100 55 110 Q70 125 100 120" fill="#2d5a1b" opacity="0.9" />
-      <path d="M100 120 Q125 100 145 110 Q130 125 100 120" fill="#2d5a1b" opacity="0.9" />
-      <path d="M100 90 Q75 70 50 75 Q65 93 100 90" fill="#2d5a1b" opacity="0.85" />
-      <path d="M100 90 Q125 70 150 75 Q135 93 100 90" fill="#2d5a1b" opacity="0.85" />
-      <path d="M100 60 Q80 42 60 48 Q72 63 100 60" fill="#2d5a1b" opacity="0.8" />
-      <path d="M100 60 Q120 42 140 48 Q128 63 100 60" fill="#2d5a1b" opacity="0.8" />
-      <path d="M100 150 Q72 138 50 148 Q68 162 100 150" fill="#3a7a2a" opacity="0.8" />
-      <path d="M100 150 Q128 138 150 148 Q132 162 100 150" fill="#3a7a2a" opacity="0.8" />
-      <path d="M100 180 Q78 172 60 180 Q75 192 100 180" fill="#3a7a2a" opacity="0.75" />
-      <path d="M100 180 Q122 172 140 180 Q125 192 100 180" fill="#3a7a2a" opacity="0.75" />
-      <ellipse cx="100" cy="20" rx="38" ry="28" fill="#3a7a2a" opacity="0.9" />
-      <ellipse cx="100" cy="20" rx="25" ry="18" fill="#4a9a35" opacity="0.7" />
-      <ellipse cx="100" cy="18" rx="12" ry="9" fill="#d4af37" opacity="0.6" />
-      <path d="M88 215 Q82 235 72 255 Q78 257 84 248 Q88 235 90 220" fill="#3d2010" />
-      <path d="M112 215 Q118 235 128 255 Q122 257 116 248 Q112 235 110 220" fill="#3d2010" />
-      <path d="M100 218 Q100 242 100 262 Q104 262 104 242 Q104 218 100 218" fill="#3d2010" />
-      <path d="M94 226 Q82 240 74 258 Q79 260 85 247 Q90 235 94 226" fill="#3d2010" />
-      <path d="M106 226 Q118 240 126 258 Q121 260 115 247 Q110 235 106 226" fill="#3d2010" />
-      <circle cx="68" cy="40" r="3" fill="#d4af37" opacity="0.7" />
-      <circle cx="130" cy="55" r="2.5" fill="#d4af37" opacity="0.6" />
-      <circle cx="55" cy="100" r="2" fill="#d4af37" opacity="0.5" />
-      <circle cx="145" cy="85" r="2.5" fill="#d4af37" opacity="0.6" />
-      <circle cx="62" cy="155" r="2" fill="#d4af37" opacity="0.5" />
-      <circle cx="140" cy="145" r="2" fill="#d4af37" opacity="0.5" />
+      {/* Face */}
+      <ellipse cx="100" cy="72" rx={p1 >= 8 ? 18 : 22} ry={p1 >= 8 ? 20 : 25} fill={faceColor} opacity="0.95" />
+
+      {/* Hair / crown */}
+      {p1 < 6 ? (
+        // Hair
+        <path
+          d={`M100 48 Q${p1 >= 3 ? 82 : 78} ${p1 >= 3 ? 38 : 42} ${p1 >= 3 ? 79 : 76} 35 Q100 ${p1 >= 3 ? 26 : 30} ${p1 >= 3 ? 121 : 124} 35 Q${p1 >= 3 ? 118 : 122} ${p1 >= 3 ? 38 : 42} 100 48`}
+          fill={hairColor}
+        />
+      ) : (
+        // Hair becoming leaves
+        <>
+          <path
+            d="M80 55 Q70 38 65 28 Q80 22 92 40 Z"
+            fill={leafColor} opacity={leafOpacity}
+          />
+          <path
+            d="M120 55 Q130 38 135 28 Q120 22 108 40 Z"
+            fill={leafColor} opacity={leafOpacity}
+          />
+          <path
+            d="M100 50 Q94 32 96 18 Q106 18 104 32 Z"
+            fill={leafColor} opacity={leafOpacity}
+          />
+          {p1 >= 7 && (
+            <>
+              <path d="M88 52 Q74 36 68 22 Q82 18 90 38 Z" fill={leafColor} opacity={leafOpacity} />
+              <path d="M112 52 Q126 36 132 22 Q118 18 110 38 Z" fill={leafColor} opacity={leafOpacity} />
+            </>
+          )}
+        </>
+      )}
+
+      {/* Crown leafy canopy — grows progressively */}
+      {p1 >= 8 && (
+        <g>
+          <LeafCluster cx={100} cy={28} leafColor={leafColor} size={22 + p2 * 8} />
+          {p2 >= 1 && <LeafCluster cx={80} cy={38} leafColor={leafColor} size={14 + p2 * 5} />}
+          {p2 >= 1 && <LeafCluster cx={120} cy={38} leafColor={leafColor} size={14 + p2 * 5} />}
+          {p2 >= 3 && <LeafCluster cx={65} cy={48} leafColor={leafColor} size={12 + p2 * 4} />}
+          {p2 >= 3 && <LeafCluster cx={135} cy={48} leafColor={leafColor} size={12 + p2 * 4} />}
+          {p2 >= 5 && <LeafCluster cx={100} cy={10} leafColor={leafColor} size={30 + p2 * 6} />}
+          {p2 >= 7 && <LeafCluster cx={75} cy={20} leafColor={leafColor} size={20 + p2 * 5} />}
+          {p2 >= 7 && <LeafCluster cx={125} cy={20} leafColor={leafColor} size={20 + p2 * 5} />}
+        </g>
+      )}
+
+      {/* Top-of-tree point (line_552 — "her face has the top of a tree") */}
+      {p1 >= 9 && (
+        <g>
+          <line x1="100" y1="50" x2="100" y2="-5" stroke="#3d2010" strokeWidth="8" strokeLinecap="round" />
+          {p2 >= 6 && (
+            <ellipse cx="100" cy={-5} rx="10" ry="7" fill="#d4af37" opacity="0.85" filter="url(#glow-filter)" />
+          )}
+        </g>
+      )}
     </g>
   );
+}
+
+function LeafCluster({ cx, cy, leafColor, size }: { cx: number; cy: number; leafColor: string; size: number }) {
+  const r = size / 2;
+  return (
+    <g>
+      <ellipse cx={cx} cy={cy} rx={r * 1.3} ry={r} fill={leafColor} opacity="0.85" />
+      <ellipse cx={cx - r * 0.7} cy={cy + r * 0.3} rx={r * 0.8} ry={r * 0.6} fill={leafColor} opacity="0.7" />
+      <ellipse cx={cx + r * 0.7} cy={cy + r * 0.3} rx={r * 0.8} ry={r * 0.6} fill={leafColor} opacity="0.7" />
+      <ellipse cx={cx} cy={cy - r * 0.5} rx={r * 0.7} ry={r * 0.5} fill="#4aaa40" opacity="0.5" />
+    </g>
+  );
+}
+
+function BarkTexture({ p1 }: { p1: number }) {
+  return (
+    <g stroke="#2a1508" strokeWidth="1" fill="none" opacity="0.4">
+      <path d="M88 105 Q96 100 92 115" />
+      <path d="M108 118 Q116 113 112 128" />
+      {p1 >= 6 && <path d="M86 135 Q94 130 90 145" />}
+      {p1 >= 6 && <path d="M110 148 Q118 143 114 158" />}
+      {p1 >= 7 && <path d="M88 162 Q96 157 92 172" />}
+      {p1 >= 7 && <path d="M109 170 Q117 165 113 180" />}
+    </g>
+  );
+}
+
+function GoldenAdornments({ p2 }: { p2: number }) {
+  return (
+    <g filter="url(#glow-filter)">
+      {p2 >= 6 && <circle cx="68" cy="55" r="3" fill="#d4af37" opacity="0.8" />}
+      {p2 >= 6 && <circle cx="132" cy="55" r="3" fill="#d4af37" opacity="0.8" />}
+      {p2 >= 7 && <circle cx="42" cy="68" r="2.5" fill="#d4af37" opacity="0.7" />}
+      {p2 >= 7 && <circle cx="158" cy="68" r="2.5" fill="#d4af37" opacity="0.7" />}
+      {p2 >= 8 && <circle cx="22" cy="44" r="2" fill="#d4af37" opacity="0.6" />}
+      {p2 >= 8 && <circle cx="178" cy="44" r="2" fill="#d4af37" opacity="0.6" />}
+      {p2 >= 9 && <circle cx="100" cy="-5" r="5" fill="#d4af37" opacity="0.9" />}
+    </g>
+  );
+}
+
+function getDescription(p1: number, p2: number): string {
+  if (p2 >= 9) return "Complete. Eternal. The Laurel of Rome.";
+  if (p2 >= 7) return "Golden triumph light crowns the canopy";
+  if (p2 >= 5) return "The god concedes — gold crowns the leaves";
+  if (p2 >= 3) return "She shrinks from his kisses — the bark holds";
+  if (p2 >= 1) return "Apollo's hand presses the bark — she trembles";
+  if (p1 >= 9) return "Her face crowns the treetop — splendor remains";
+  if (p1 >= 7) return "Deep roots anchor her — branches reach wide";
+  if (p1 >= 5) return "Bark wraps her torso — hair turns to leaves";
+  if (p1 >= 3) return "Her arms reach skyward — the prayer is spoken";
+  if (p1 >= 1) return "She pales, exhausted — her feet slow";
+  return "A nymph flees the golden god";
 }

@@ -38,31 +38,34 @@ artifacts-monorepo/
 
 ## Daphne's Root — Game Architecture
 
-A narrative-driven incremental clicker game based on Ovid's Metamorphoses I.545–559.
+A narrative-driven incremental clicker game based on Ovid's Metamorphoses I.543–561.
+All 18 lines in exact user-specified translations, split into Part I (The Transformation) and Part II (Apollo's Embrace). Dark Academia aesthetic. See `CONFIG.md` at the project root for the full tuning guide.
 
 ### Key Files
 
-- `artifacts/daphnes-root/src/config/gameConfig.ts` — **All game configuration**: story nodes (Latin lines + effects), act definitions, and GAME_CONFIG constants. Edit here to tune balance.
+- `artifacts/daphnes-root/src/config/gameConfig.ts` — **All game configuration**: 18 story nodes (Latin lines + effects), PARTS metadata, and GAME_CONFIG constants. Edit here to tune balance.
 - `artifacts/daphnes-root/src/store/gameStore.ts` — Zustand state store with localStorage persistence. All game logic (click, tick, purchase) lives here.
-- `artifacts/daphnes-root/src/pages/Game.tsx` — Main game layout: sprite, Numen display, Heat bar, tabs (Upgrades / Scroll of Ovid), stat cards.
+- `artifacts/daphnes-root/src/pages/Game.tsx` — Main game layout: sprite, Numen display, Heat bar, tabs (Metamorphosis / Scroll of Ovid), stat cards.
 - `artifacts/daphnes-root/src/components/` — Individual UI components:
-  - `DaphneSprite.tsx` — SVG sprite with 5 transformation stages
-  - `HeatBar.tsx` — Apollo's Heat progress bar with penalty warning
-  - `UpgradeShop.tsx` — Purchase upgrades grouped by Act
-  - `ScrollOfOvid.tsx` — Displays unlocked Latin lines with translations
-  - `NumenDisplay.tsx` — Numen counter and per-click/per-second stats
+  - `DaphneSprite.tsx` — Progressive SVG sprite driven by `unlockedIds[]`, p1/p2 counters control skin/bark/branches/leaves/adornments
+  - `ParticleBackground.tsx` — Canvas-rendered glowing particles (reacts to heat level)
+  - `ClickFeedback.tsx` — Orange expanding ring + floating "+N numen" on each click
+  - `HeatBar.tsx` — Apollo's Heat progress bar with penalty warning and dashed threshold marker
+  - `UpgradeShop.tsx` — Two-section shop (Part I / Part II) with affordability highlighting
+  - `ScrollOfOvid.tsx` — Unlocked lines display grouped by Part
+  - `NumenDisplay.tsx` — Cookie-clicker-style counter with per-click and per-sec stats
   - `TriumphScreen.tsx` — Endgame victory overlay
 
 ### Easy Configuration Points
 
-In `src/config/gameConfig.ts`:
-- `GAME_CONFIG.HEAT_INCREASE_RATE` — how fast Apollo's Heat rises (default 0.08/tick)
-- `GAME_CONFIG.HEAT_PENALTY_THRESHOLD` — heat % when Numen slows (default 80)
-- `GAME_CONFIG.HEAT_PENALTY_SLOW` — Numen multiplier when penalised (default 0.5 = 50%)
-- `GAME_CONFIG.TICK_RATE_MS` — game tick speed in ms (default 100)
-- `GAME_CONFIG.REFUGIT_PUSHBACK` — heat reduction on each purchase after Refugit unlock (default 20)
-- `GAME_CONFIG.SPRITE_STAGES` — thresholds for visual transformation stages
+In `src/config/gameConfig.ts` — see full guide in `CONFIG.md`:
+- `GAME_CONFIG.HEAT_INCREASE_RATE` — how fast Apollo's Heat rises (0.45/tick)
+- `GAME_CONFIG.HEAT_PENALTY_THRESHOLD` — heat % when Numen slows (75)
+- `GAME_CONFIG.HEAT_PENALTY_SLOW` — Numen multiplier when penalised (0.5 = 50%)
+- `GAME_CONFIG.TICK_RATE_MS` — game tick speed in ms (100)
+- `GAME_CONFIG.REFUGIT_PUSHBACK` — heat reduction on each purchase after Refugit unlock (25)
 - `STORY_NODES` array — add/remove/edit Latin lines, costs, and effects
+- `PARTS` object — Part I / Part II section headers and descriptions
 
 ### State Persistence
 

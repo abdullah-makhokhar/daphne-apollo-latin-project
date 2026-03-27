@@ -55,7 +55,6 @@ export const useGameStore = create<GameState>()(
           (GAME_CONFIG.TICK_RATE_MS / 1000);
 
         const newHeat = Math.min(state.apolloHeat + heatIncrease, GAME_CONFIG.HEAT_MAX);
-
         const penaltyActive = newHeat >= GAME_CONFIG.HEAT_PENALTY_THRESHOLD;
         const effectiveMultiplier = penaltyActive
           ? state.numanMultiplier * GAME_CONFIG.HEAT_PENALTY_SLOW
@@ -100,8 +99,7 @@ export const useGameStore = create<GameState>()(
         const { effect } = node;
 
         if (state.refugitActive && effect.type !== "endgame") {
-          const newHeat = Math.max(0, state.apolloHeat - GAME_CONFIG.REFUGIT_PUSHBACK);
-          updates.apolloHeat = newHeat;
+          updates.apolloHeat = Math.max(0, state.apolloHeat - GAME_CONFIG.REFUGIT_PUSHBACK);
         }
 
         switch (effect.type) {
@@ -131,8 +129,6 @@ export const useGameStore = create<GameState>()(
             updates.gamePhase = "triumph";
             updates.triumphTime = Date.now();
             break;
-          default:
-            break;
         }
 
         set(updates);
@@ -145,9 +141,7 @@ export const useGameStore = create<GameState>()(
     {
       name: "daphnes-root-save",
       onRehydrateStorage: () => (state) => {
-        if (state) {
-          state._hydrateComplete = true;
-        }
+        if (state) state._hydrateComplete = true;
       },
     }
   )
@@ -159,15 +153,4 @@ export function getAvailableUpgrades(state: GameState): StoryNode[] {
 
 export function getUnlockedNodes(state: GameState): StoryNode[] {
   return STORY_NODES.filter((n) => state.unlockedIds.includes(n.id));
-}
-
-export function getSpriteStage(unlockedCount: number): number {
-  const stages = GAME_CONFIG.SPRITE_STAGES;
-  let stage = 0;
-  for (let i = 0; i < stages.length; i++) {
-    if (unlockedCount >= stages[i].threshold) {
-      stage = i;
-    }
-  }
-  return stage;
 }

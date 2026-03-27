@@ -11,11 +11,18 @@ export function HeatBar({ heat, apolloVisible }: HeatBarProps) {
   const isDanger = heat >= 90;
 
   const heatColor =
-    pct < 50 ? "bg-amber-600" : pct < 80 ? "bg-orange-500" : "bg-red-500";
+    pct < 40 ? "from-amber-700 to-amber-600"
+    : pct < GAME_CONFIG.HEAT_PENALTY_THRESHOLD ? "from-orange-600 to-orange-500"
+    : "from-red-700 to-red-500";
+
+  const barGlow =
+    isDanger ? "shadow-[0_0_12px_rgba(220,38,38,0.7)]"
+    : isPenalty ? "shadow-[0_0_8px_rgba(234,88,12,0.5)]"
+    : "";
 
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between mb-1.5">
+    <div className="w-full space-y-1">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="font-serif text-amber-300 text-sm tracking-wide">Apollo's Heat</span>
           {apolloVisible && (
@@ -24,16 +31,16 @@ export function HeatBar({ heat, apolloVisible }: HeatBarProps) {
                 isDanger
                   ? "bg-red-900 text-red-200 animate-pulse"
                   : isPenalty
-                  ? "bg-orange-900 text-orange-200"
-                  : "bg-stone-800 text-amber-400"
+                  ? "bg-orange-900/70 text-orange-200"
+                  : "bg-stone-800 text-amber-500"
               }`}
             >
-              {isDanger ? "⚠ HE REACHES" : isPenalty ? "✋ His hand..." : "☀ Pursuing"}
+              {isDanger ? "⚠ HIS HAND REACHES" : isPenalty ? "✋ He draws close" : "☀ Pursuing"}
             </span>
           )}
         </div>
         <span
-          className={`text-xs font-mono ${
+          className={`text-xs font-mono font-semibold ${
             isDanger ? "text-red-400 animate-pulse" : isPenalty ? "text-orange-400" : "text-stone-500"
           }`}
         >
@@ -41,32 +48,39 @@ export function HeatBar({ heat, apolloVisible }: HeatBarProps) {
         </span>
       </div>
 
-      <div className="relative w-full bg-stone-900 rounded-full h-3 overflow-hidden border border-stone-700">
+      <div className="relative w-full bg-stone-900 rounded-full h-3.5 overflow-hidden border border-stone-700">
         <div
-          className={`h-full rounded-full transition-all duration-300 ${heatColor} ${
+          className={`h-full rounded-full bg-gradient-to-r ${heatColor} transition-all duration-150 ${barGlow} ${
             isDanger ? "animate-pulse" : ""
           }`}
           style={{ width: `${pct}%` }}
         />
+        {/* Penalty threshold marker */}
         <div
-          className="absolute top-0 left-0 h-full"
-          style={{
-            width: `${(GAME_CONFIG.HEAT_PENALTY_THRESHOLD / GAME_CONFIG.HEAT_MAX) * 100}%`,
-            borderRight: "2px dashed rgba(251, 191, 36, 0.4)",
-          }}
+          className="absolute top-0 h-full border-r-2 border-dashed border-amber-500/40 pointer-events-none"
+          style={{ left: `${GAME_CONFIG.HEAT_PENALTY_THRESHOLD}%` }}
         />
       </div>
 
-      {isPenalty && (
-        <p className="mt-1 text-xs text-red-400 italic font-serif animate-pulse">
-          sentit adhuc trepidare — Numen generation slowed by half
-        </p>
-      )}
-      {!isPenalty && (
-        <p className="mt-1 text-xs text-stone-600 italic font-serif">
-          {heat < 30 ? "The god is distant still..." : heat < 60 ? "His golden lyre grows louder..." : "His breath on your bark..."}
-        </p>
-      )}
+      <p
+        className={`text-xs font-serif italic transition-colors ${
+          isDanger
+            ? "text-red-400 animate-pulse"
+            : isPenalty
+            ? "text-orange-500"
+            : "text-stone-700"
+        }`}
+      >
+        {isDanger
+          ? "sentit adhuc trepidare — bark barely holds!"
+          : isPenalty
+          ? "His warmth seeps through the bark — Numen flows at half speed"
+          : heat < 30
+          ? "The god is distant still..."
+          : heat < 55
+          ? "His golden lyre grows louder..."
+          : "His breath upon your bark..."}
+      </p>
     </div>
   );
 }
