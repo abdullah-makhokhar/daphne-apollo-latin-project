@@ -1,0 +1,101 @@
+This **Product Requirements Document (PRD)** is designed for a lightweight, high-impact web game titled **"Daphne’s Root"**. It is optimized for an AI agent to build using a single-file structure (HTML/CSS/JS) or a simple React/Vite scaffold on Replit.
+
+-----
+
+# PRD: Daphne’s Root (Metamorphosis Clicker)
+
+## 1\. Project Overview
+
+A narrative-driven incremental game (clicker) where the player takes the role of the nymph Daphne at the moment of her transformation. The goal is to "solidify" your form into a Laurel tree to escape Apollo’s pursuit, using original Latin lines as both narrative milestones and mechanical upgrades.
+
+## 2\. Core Loop
+
+1.  **Generate "Numen" (Divine Essence):** Click the central sprite (Daphne/Tree).
+2.  **Purchase Metamorphosis Upgrades:** Use Numen to unlock lines of Latin text.
+3.  **Resist the Sun:** Apollo’s "Heat" bar increases over time; upgrades keep the bark cool and the roots deep.
+4.  **Completion:** Once all 20 lines (focused on your 545–559 selection) are unlocked, the transformation is complete, and the "Triumph" ending triggers.
+
+-----
+
+## 3\. Visual & UI Requirements
+
+  * **The Sprite:** A central canvas element. It starts as a silhouette of a woman and gradually evolves (adding bark textures, leaves, and roots) as upgrades are purchased.
+  * **The Scroll:** A side panel where the 20 Latin lines appear one by one.
+  * **The "Oscula" Warning:** A visual pulsing red glow when Apollo's "hand" (the Heat bar) gets too close, based on line 554 (*sentit adhuc trepidare*).
+
+-----
+
+## 4\. Feature Roadmap & Latin Integration
+
+The game is divided into **four "Acts"** based on your selected text.
+
+### Act I: The Prayer (*Prece Finita*)
+
+*Focus: Establishing the transformation.*
+
+  * **Line 545:** *“fer, pater,” inquit “opem\!”* \* **Unlock:** Manual clicks generate +2 Numen.
+  * **Line 548:** *vix prece finitā torpor gravis occupat artūs.*
+      * **Unlock:** "Torpor" Auto-Clicker. Generates 1 Numen/sec.
+
+### Act II: The Hardening (*Sub Cortice*)
+
+*Focus: Defensive upgrades against Apollo’s persistence.*
+
+  * **Line 549:** *mollia cinguntur tenui praecordia libro.*
+      * **Upgrade:** **Tenui Libro (Thin Bark).** Reduces the rate at which Apollo’s "Heat" increases.
+  * **Line 551:** *pes modo tam velox pigris radicibus haeret.*
+      * **Upgrade:** **Pigris Radicibus (Sluggish Roots).** Multiplies Numen generation by 2x.
+
+### Act III: The Rejection (*Refugit Oscula*)
+
+*Focus: Reaching the "Tree" state.*
+
+  * **Line 553:** *Hanc quoque Phoebus amat...*
+      * **Event:** Apollo’s hand appears on the UI.
+  * **Line 556:** *oscula dat ligno; refugit tamen oscula lignum.*
+      * **Upgrade:** **Refugit Oscula.** A "recoil" mechanic that pushes Apollo’s Heat bar back by 20% whenever a line is completed.
+
+### Act IV: The Eternal Laurel (*Arbor Eris*)
+
+*Focus: The final legacy.*
+
+  * **Line 558:** *arbor eris certe dixit “mea\! semper habebunt...”*
+      * **Upgrade:** **Semper Habebunt.** Final multiplier.
+  * **Line 559:** *tu ducibus Latiis aderis, cum laeta Triumphum...*
+      * **Endgame:** The screen fades to gold; the tree is fully formed. The "Triumph" text displays.
+
+-----
+
+## 5\. Technical Specifications (for the Agent)
+
+### Data Structure
+
+```javascript
+const storyNodes = [
+  { line: "fer, pater, inquit opem!", trigger: 10, effect: "clickPower" },
+  { line: "vix prece finitā torpor gravis occupat artūs", trigger: 100, effect: "autoClick" },
+  // ... etc
+];
+```
+
+### Game Logic
+
+  * **Resource:** `numen` (Integer).
+  * **Apollo's Heat:** A float (0 to 100). If it hits 100, the "heart trembles" (line 554) and Numen generation slows by 50% until the player clicks "Refuse" (Refugit).
+  * **State Management:** The agent should use `localStorage` so the user can refresh their Replit browser without losing their metamorphosis progress.
+
+-----
+
+## 6\. Prompt for the Replit Agent
+
+Copy and paste this to start the build:
+
+> "Create a lightweight web game in a single HTML file using Tailwind CSS for styling and Vanilla JavaScript for logic. The game is a 'Metamorphosis Clicker' about Daphne and Apollo.
+>
+> 1.  Use a central \<div\> that visually evolves from a woman to a tree as the player earns 'Numen' (currency).
+> 2.  Implement an 'Upgrade' shop using these specific Latin lines: [Insert Lines 545-559].
+> 3.  Each line must be an unlockable milestone that improves Numen generation or resists 'Apollo's Heat.'
+> 4.  When a line is bought, display the Latin and its English translation in a 'Scroll of Ovid' on the side.
+> 5.  Keep the aesthetic 'Dark Academia'—parchment backgrounds, serif fonts (Cinzel or Playfair Display), and gold accents."
+
+**Would you like me to generate the actual CSS/JS code block for the "Apollo's Heat" mechanic to get the logic started?**
