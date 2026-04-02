@@ -2,7 +2,6 @@
   "version": 2,
   "buildCommand": "pnpm install --frozen-lockfile && pnpm run typecheck",
   "framework": null,
-  "nodeVersion": "24.x",
   "env": {
     "NODE_ENV": "production"
   }
