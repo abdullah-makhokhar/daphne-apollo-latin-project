@@ -1,21 +1,9 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "artifacts/api-server/dist/index.mjs",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "artifacts/api-server/dist/index.mjs"
-    }
-  ],
+  "buildCommand": "pnpm install --frozen-lockfile && pnpm run typecheck",
+  "framework": null,
+  "nodeVersion": "24.x",
   "env": {
-    "NODE_ENV": "production",
-    "PORT": "3000"
-  },
-  "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm run build"
+    "NODE_ENV": "production"
+  }
 }
