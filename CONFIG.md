@@ -1,12 +1,11 @@
 # Daphne's Root — Configuration Guide
 
-Everything you need to tune, extend, or redesign the game lives in one place:
+Two files handle all configuration — no need to touch game logic:
 
 ```
-artifacts/daphnes-root/src/config/gameConfig.ts
+artifacts/daphnes-root/src/config/gameConfig.ts   ← gameplay & balance
+artifacts/daphnes-root/src/config/soundConfig.ts  ← all sounds
 ```
-
-This file is the **single source of truth** for all game data and constants. You should never need to touch game logic files to make gameplay changes.
 
 ---
 
@@ -20,6 +19,7 @@ This file is the **single source of truth** for all game data and constants. You
 6. [Click Feedback](#6-click-feedback-animation)
 7. [Part Headers](#7-part-headers)
 8. [Theme / Colors](#8-theme--colors)
+9. [Sound System](#9-sound-system)
 
 ---
 
@@ -266,23 +266,139 @@ To change the save key (useful if you want separate save slots):
 
 ---
 
+## 9. Sound System
+
+### Overview
+
+All sound configuration lives in one file:
+
+```
+artifacts/daphnes-root/src/config/soundConfig.ts
+```
+
+Sound files themselves go in:
+
+```
+artifacts/daphnes-root/public/sounds/
+```
+
+The sound system uses browser-native `HTMLAudioElement` pools — no extra libraries required. Sounds are preloaded on first render and pooled (up to 4 simultaneous instances per event) so rapid clicks never stall.
+
+---
+
+### Step 1 — Add your file
+
+Drop a `.mp3`, `.ogg`, or `.wav` file into:
+
+```
+artifacts/daphnes-root/public/sounds/your-file.mp3
+```
+
+---
+
+### Step 2 — Wire it to an event
+
+Open `src/config/soundConfig.ts` and find the event in `SOUND_CONFIG`:
+
+```ts
+click: {
+  src: "click.mp3",   // ← your filename
+  volume: 0.5,        // 0.0–1.0
+  enabled: true,
+},
+```
+
+---
+
+### Sound Events
+
+| Key | When it fires |
+|-----|---------------|
+| `click` | Every sprite click (can be very rapid — use low volume) |
+| `upgrade` | Any upgrade purchased (unless per-upgrade override exists) |
+| `refugit` | The Refugit (heat-pushback) upgrade specifically |
+| `heatWarning` | One-shot when heat first crosses 75% |
+| `heatPenaltyLoop` | Repeats every 8 s while heat stays ≥ 75% |
+| `heatDanger` | One-shot when heat first hits 90%+ |
+| `apolloAppears` | One-shot when Apollo becomes visible |
+| `triumph` | One-shot on the final upgrade / triumph screen |
+| `reset` | Player clicks "abandon transformation" |
+
+---
+
+### Per-Upgrade Sound Overrides
+
+To give one specific Latin line its own sound, add it to `UPGRADE_SOUND_OVERRIDES`:
+
+```ts
+export const UPGRADE_SOUND_OVERRIDES: Partial<Record<string, SoundSlot>> = {
+  "line_556": { src: "oscula.mp3",     volume: 1.0, enabled: true },
+  "line_561": { src: "arbor-eris.mp3", volume: 0.9, enabled: true },
+};
+```
+
+This plays **instead of** the generic `upgrade` sound for those lines. All other lines continue using the `upgrade` slot.
+
+---
+
+### Muting
+
+**One event:** set `enabled: false` in its slot.
+
+**Everything at once:** set `SOUND_ENABLED = false` at the top of `soundConfig.ts`.
+
+```ts
+export const SOUND_ENABLED = false;  // total silence
+```
+
+---
+
+### Adjusting the penalty loop interval
+
+The `heatPenaltyLoop` event fires on a timer in `Game.tsx`. To change how often it plays (default 8 s):
+
+```ts
+// In src/pages/Game.tsx — search for penaltyLoopRef
+penaltyLoopRef.current = setInterval(() => {
+  play("heatPenaltyLoop");
+}, 8000);   // ← change this value (milliseconds)
+```
+
+---
+
+### Tips
+
+- Keep `click.mp3` short (< 0.3 s) — it fires on every click.
+- Keep `heatPenaltyLoop` subtle (`volume: 0.2–0.3`) — it repeats.
+- `.mp3` works everywhere and compresses to small sizes.
+- `.ogg` is also fine; `.wav` works but is much larger.
+
+---
+
 ## File Map
 
 ```
-artifacts/daphnes-root/src/
-├── config/
-│   └── gameConfig.ts        ← MAIN CONFIG FILE — edit here
-├── store/
-│   └── gameStore.ts         ← Game state + logic
-├── pages/
-│   └── Game.tsx             ← Main layout and input handling
-└── components/
-    ├── DaphneSprite.tsx     ← Progressive SVG transformation
-    ├── ParticleBackground.tsx ← Canvas particles
-    ├── ClickFeedback.tsx    ← Orange ring + floating text
-    ├── HeatBar.tsx          ← Apollo's Heat bar
-    ├── NumenDisplay.tsx     ← Main counter + per-click/sec stats
-    ├── UpgradeShop.tsx      ← Two-section upgrade panel
-    ├── ScrollOfOvid.tsx     ← Unlocked lines display
-    └── TriumphScreen.tsx    ← Endgame overlay
+artifacts/daphnes-root/
+├── public/
+│   └── sounds/              ← DROP SOUND FILES HERE (.mp3 / .ogg / .wav)
+│       └── README.md        ← Quick reference
+└── src/
+    ├── config/
+    │   ├── gameConfig.ts    ← Gameplay & balance (MAIN CONFIG)
+    │   └── soundConfig.ts   ← All sound event config (SOUND CONFIG)
+    ├── hooks/
+    │   └── useSound.ts      ← Sound engine (do not edit)
+    ├── store/
+    │   └── gameStore.ts     ← Game state + logic
+    ├── pages/
+    │   └── Game.tsx         ← Main layout and input handling
+    └── components/
+        ├── DaphneSprite.tsx       ← Progressive SVG transformation
+        ├── ParticleBackground.tsx ← Canvas particles
+        ├── ClickFeedback.tsx      ← Orange ring + floating text
+        ├── HeatBar.tsx            ← Apollo's Heat bar
+        ├── NumenDisplay.tsx       ← Main counter + per-click/sec stats
+        ├── UpgradeShop.tsx        ← Two-section upgrade panel
+        ├── ScrollOfOvid.tsx       ← Unlocked lines display
+        └── TriumphScreen.tsx      ← Endgame overlay
 ```

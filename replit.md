@@ -56,6 +56,16 @@ All 18 lines in exact user-specified translations, split into Part I (The Transf
   - `NumenDisplay.tsx` — Cookie-clicker-style counter with per-click and per-sec stats
   - `TriumphScreen.tsx` — Endgame victory overlay
 
+### Sound System
+
+All sound configuration is in `src/config/soundConfig.ts` — the only file needed to add/change sounds:
+- `SOUND_CONFIG` — one `{ src, volume, enabled }` slot per event (click, upgrade, refugit, heatWarning, heatPenaltyLoop, heatDanger, apolloAppears, triumph, reset)
+- `UPGRADE_SOUND_OVERRIDES` — per-line-id sound overrides that play instead of the generic upgrade sound
+- `SOUND_ENABLED` — global mute toggle
+- Sound files go in `public/sounds/` (mp3 / ogg / wav supported)
+- Uses HTMLAudioElement pooling (4 instances/event) — no external libraries
+- See full guide in `CONFIG.md` section 9
+
 ### Easy Configuration Points
 
 In `src/config/gameConfig.ts` — see full guide in `CONFIG.md`:

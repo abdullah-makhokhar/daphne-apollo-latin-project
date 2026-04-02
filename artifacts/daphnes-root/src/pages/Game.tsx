@@ -8,7 +8,8 @@ import { NumenDisplay } from "../components/NumenDisplay";
 import { TriumphScreen } from "../components/TriumphScreen";
 import { ParticleBackground } from "../components/ParticleBackground";
 import { ClickFeedback, useClickFeedback } from "../components/ClickFeedback";
-import { GAME_CONFIG } from "../config/gameConfig";
+import { GAME_CONFIG, StoryNode } from "../config/gameConfig";
+import { useSound } from "../hooks/useSound";
 
 type TabId = "upgrades" | "scroll";
 
@@ -17,10 +18,18 @@ export default function Game() {
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("upgrades");
   const { events, addClick } = useClickFeedback();
+  const { play, playUpgrade } = useSound();
 
   const isHot = store.apolloHeat >= GAME_CONFIG.HEAT_PENALTY_THRESHOLD;
   const isDanger = store.apolloHeat >= 90;
 
+  // Track previous states so we can fire one-shot sound events
+  const prevHeatRef = useRef(store.apolloHeat);
+  const prevApolloVisibleRef = useRef(store.apolloVisible);
+  const prevPhaseRef = useRef(store.gamePhase);
+  const penaltyLoopRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Game tick
   useEffect(() => {
     tickRef.current = setInterval(() => {
       store.tick();
@@ -30,6 +39,59 @@ export default function Game() {
     };
   }, []);
 
+  // Sound event tracking on state changes
+  useEffect(() => {
+    const prev = prevHeatRef.current;
+    const heat = store.apolloHeat;
+    const threshold = GAME_CONFIG.HEAT_PENALTY_THRESHOLD;
+
+    // Heat just crossed the warning threshold
+    if (prev < threshold && heat >= threshold) {
+      play("heatWarning");
+    }
+
+    // Heat just hit danger zone
+    if (prev < 90 && heat >= 90) {
+      play("heatDanger");
+    }
+
+    // Apollo just appeared for the first time
+    if (!prevApolloVisibleRef.current && store.apolloVisible) {
+      play("apolloAppears");
+    }
+
+    // Triumph transition
+    if (prevPhaseRef.current !== "triumph" && store.gamePhase === "triumph") {
+      play("triumph");
+    }
+
+    prevHeatRef.current = heat;
+    prevApolloVisibleRef.current = store.apolloVisible;
+    prevPhaseRef.current = store.gamePhase;
+  });
+
+  // Penalty loop sound: plays at interval while heat stays high
+  useEffect(() => {
+    if (isHot) {
+      if (!penaltyLoopRef.current) {
+        penaltyLoopRef.current = setInterval(() => {
+          play("heatPenaltyLoop");
+        }, 8000); // every 8 seconds while penalised
+      }
+    } else {
+      if (penaltyLoopRef.current) {
+        clearInterval(penaltyLoopRef.current);
+        penaltyLoopRef.current = null;
+      }
+    }
+    return () => {
+      if (penaltyLoopRef.current) {
+        clearInterval(penaltyLoopRef.current);
+        penaltyLoopRef.current = null;
+      }
+    };
+  }, [isHot, play]);
+
   const available = getAvailableUpgrades(store);
   const unlocked = getUnlockedNodes(store);
   const unlockedCount = store.unlockedIds.length;
@@ -38,7 +100,23 @@ export default function Game() {
 
   const handleSpriteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     store.handleClick();
+    play("click");
     addClick(e.clientX, e.clientY, effectivePerClick);
+  };
+
+  const handlePurchase = (node: StoryNode) => {
+    store.purchaseUpgrade(node);
+    // Refugit has its own sound; otherwise per-upgrade or generic upgrade
+    if (node.effect.type === "refugit") {
+      play("refugit");
+    } else {
+      playUpgrade(node.id);
+    }
+  };
+
+  const handleReset = () => {
+    play("reset");
+    store.resetGame();
   };
 
   return (
@@ -50,7 +128,7 @@ export default function Game() {
       <ClickFeedback events={events} />
 
       {/* Triumph overlay */}
-      {store.gamePhase === "triumph" && <TriumphScreen onReset={store.resetGame} />}
+      {store.gamePhase === "triumph" && <TriumphScreen onReset={handleReset} />}
 
       {/* Heat border vignette */}
       <div
@@ -63,7 +141,7 @@ export default function Game() {
         }`}
       />
 
-      {/* Main content — above particles */}
+      {/* Main content */}
       <div className="relative z-20 max-w-6xl mx-auto px-4 py-5">
         {/* Header */}
         <header className="text-center mb-6 space-y-1">
@@ -107,7 +185,7 @@ export default function Game() {
             </div>
 
             <button
-              onClick={store.resetGame}
+              onClick={handleReset}
               className="text-xs text-stone-800 hover:text-stone-600 transition-colors font-serif italic"
             >
               abandon transformation
@@ -141,7 +219,7 @@ export default function Game() {
                   <UpgradeShop
                     available={available}
                     numen={store.numen}
-                    onPurchase={store.purchaseUpgrade}
+                    onPurchase={handlePurchase}
                     refugitActive={store.refugitActive}
                     unlockedCount={unlockedCount}
                   />
@@ -163,7 +241,7 @@ export default function Game() {
                 }`}
               >
                 {isDanger
-                  ? '☀ "sentit adhuc trepidare novo sub cortice pectus" — he feels your heart trembling! Numen halved.'
+                  ? '"sentit adhuc trepidare novo sub cortice pectus" — he feels your heart trembling! Numen halved.'
                   : isHot
                   ? "☀ Apollo's hand presses the bark — feel the heat. Purchase upgrades or she burns."
                   : "☀ Hanc quoque Phoebus amat — Apollo draws near, but the bark holds for now..."}
