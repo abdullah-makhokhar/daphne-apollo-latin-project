@@ -1,16 +1,14 @@
 {
-  "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": ".",
-    "outDir": ".vercel/output/functions/api",
-    "resolveJsonModule": true,
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["ES2020"],
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "moduleResolution": "node"
+    "strict": true,
+    "resolveJsonModule": true
   },
   "include": ["."],
-  "references": [
-    { "path": "../lib/db" },
-    { "path": "../lib/api-zod" }
-  ]
+  "exclude": ["node_modules"]
 }

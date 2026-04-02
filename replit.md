@@ -15,25 +15,59 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+- **Deployment**: Vercel Serverless Functions (Node.js 24)
+
+## 🚀 Deployment (Vercel)
+
+**This project is production-ready for Vercel deployment (March 2026).**
+
+### Quick Start
+1. Set up PostgreSQL database (Railway, Supabase, AWS RDS, or DigitalOcean)
+2. Connect repository to Vercel
+3. Add `DATABASE_URL` environment variable
+4. Deploy! (auto-triggers on GitHub push)
+
+### Documentation
+- **Complete Guide**: See [`VERCEL_DEPLOYMENT_COMPLETE.md`](./VERCEL_DEPLOYMENT_COMPLETE.md)
+- **Checklist**: See [`DEPLOYMENT_CHECKLIST.md`](./DEPLOYMENT_CHECKLIST.md)
+- **Environment Setup**: See [`.env.example`](./.env.example)
+
+### Key Files for Deployment
+- `api/index.ts` — Serverless function entry point (Express app)
+- `vercel.json` — Vercel configuration
+- `api/package.json` — Dependencies for serverless handler
+- `scripts/validate-deployment.js` — Pre-deployment validation
+- `scripts/check-deployment.sh` — Post-deployment health check
+
+### Endpoints
+- `GET /` — API root (returns status)
+- `GET /api/healthz` — Health check for load balancers
 
 ## Structure
 
 ```text
 artifacts-monorepo/
+├── api/                    # ← Vercel serverless entry point
+│   ├── index.ts            # Express app handler
+│   ├── package.json        # Serverless dependencies
+│   └── tsconfig.json       # TypeScript config
 ├── artifacts/              # Deployable applications
-│   ├── api-server/         # Express API server
+│   ├── api-server/         # Express API server (local dev only)
 │   └── daphnes-root/       # Daphne's Root — narrative clicker game
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
 │   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts
+├── scripts/                # Utility scripts
+│   ├── validate-deployment.js  # Pre-deployment validation
+│   └── check-deployment.sh     # Post-deployment health check
 ├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
 ├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
 ├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+├── vercel.json             # Vercel deployment config
+├── package.json            # Root package with hoisted devDeps
+└── .env.example            # Environment variables template
 ```
 
 ## Daphne's Root — Game Architecture
