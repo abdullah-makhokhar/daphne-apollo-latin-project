@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "buildCommand": "corepack enable pnpm && pnpm install --frozen-lockfile",
   "outputDirectory": "public",
   "framework": null,
   "env": {

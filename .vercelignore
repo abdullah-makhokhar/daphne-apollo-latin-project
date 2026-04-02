@@ -1,0 +1,7 @@
+.git
+.gitignore
+*.md
+.env.local
+.env.*.local
+node_modules
+pnpm-workspace.yaml
